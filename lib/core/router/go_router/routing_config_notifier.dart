@@ -7,8 +7,9 @@ import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.
 import 'package:hiddify/core/router/go_router/helper/custom_transition.dart';
 import 'package:hiddify/core/router/go_router/refresh_listenable.dart';
 import 'package:hiddify/features/about/widget/about_page.dart';
+import 'package:hiddify/features/auth/notifier/auth_notifier.dart';
+import 'package:hiddify/features/auth/widget/login_page.dart';
 import 'package:hiddify/features/home/widget/home_page.dart';
-import 'package:hiddify/features/intro/widget/intro_page.dart';
 import 'package:hiddify/features/log/overview/logs_page.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_page.dart';
 import 'package:hiddify/features/profile/details/profile_details_page.dart';
@@ -63,8 +64,18 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
     if (isMobileBreakpoint == null) return loadingConfig;
     return RoutingConfig(
       redirect: (context, state) {
-        final introCompleted = ref.read(Preferences.introCompleted);
-        final isIntro = state.matchedLocation == '/intro';
+        // check auth status
+        final authState = ref.read(authNotifierProvider);
+        final isLoginRoute = state.matchedLocation == '/login';
+        final isAuthenticated = authState.valueOrNull == AuthStatus.authenticated;
+
+        if (!isAuthenticated && !isLoginRoute) {
+          return '/login';
+        }
+        if (isAuthenticated && isLoginRoute) {
+          return '/home';
+        }
+
         // fix path-parameters for deep link
         String? url;
         if (LinkParser.protocols.contains(state.uri.scheme)) {
@@ -76,15 +87,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
           url = state.uri.queryParameters['url'];
         }
 
-        if (!introCompleted) {
-          return url != null ? '/intro?url=$url' : '/intro';
-        } else if (isIntro) {
-          if (url != null)
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(url: url),
-            );
-          return '/home';
-        } else if (url != null) {
+        if (url != null) {
           WidgetsBinding.instance.addPostFrameCallback(
             (_) => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(url: url),
           );
@@ -246,7 +249,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
             ],
           ],
         ),
-        GoRoute(name: 'intro', path: '/intro', builder: (_, _) => const IntroPage()),
+        GoRoute(name: 'login', path: '/login', builder: (_, _) => const LoginPage()),
       ],
     );
   }

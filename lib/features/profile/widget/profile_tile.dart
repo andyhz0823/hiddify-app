@@ -250,50 +250,6 @@ class ProfileActionsMenu extends HookConsumerWidget {
           },
         ),
       AdaptiveMenuItem(
-        title: t.common.share,
-        icon: AdaptiveIcon(context).share,
-        subItems: [
-          if (profile case RemoteProfileEntity(:final url, :final name)) ...[
-            AdaptiveMenuItem(
-              title: t.pages.profiles.share.urlToClipboard,
-              onTap: () async {
-                final link = LinkParser.generateSubShareLink(url, name);
-                if (link.isNotEmpty) {
-                  await Clipboard.setData(ClipboardData(text: link));
-                  if (context.mounted) {
-                    ref
-                        .read(inAppNotificationControllerProvider)
-                        .showSuccessToast(t.common.msg.export.clipboard.success);
-                  }
-                }
-              },
-            ),
-            AdaptiveMenuItem(
-              title: t.pages.profiles.share.showUrlQr,
-              onTap: () async {
-                final link = LinkParser.generateSubShareLink(url, name);
-                if (link.isNotEmpty) {
-                  await ref.read(dialogNotifierProvider.notifier).showQrCode(link, message: name);
-                }
-              },
-            ),
-          ],
-          AdaptiveMenuItem(
-            title: t.pages.profiles.share.jsonToClipboard,
-            onTap: () async => await ref.read(profilesNotifierProvider.notifier).exportConfigToClipboard(profile),
-          ),
-        ],
-      ),
-      AdaptiveMenuItem(
-        icon: Icons.edit_rounded,
-        title: t.common.edit,
-        onTap: () {
-          if (Breakpoint(context).isMobile()) context.pop();
-          context.goNamed('profileDetails', pathParameters: {'id': profile.id});
-        },
-      ),
-      // if (!profile.active)
-      AdaptiveMenuItem(
         icon: Icons.delete_outline_rounded,
         title: t.common.delete,
         onTap: () async => await ref
@@ -321,7 +277,7 @@ class ProfileSubscriptionInfo extends HookConsumerWidget {
 
   (String, Color?) remainingText(TranslationsEn t, ThemeData theme) {
     if (subInfo.isExpired) {
-      return (t.components.subscriptionInfo.expired, theme.colorScheme.error);
+      return ('您的订阅已到期，请到 kuaifei.top 续费或新购', theme.colorScheme.error);
     } else if (subInfo.ratio >= 1) {
       return (t.components.subscriptionInfo.noTraffic, theme.colorScheme.error);
     } else if (subInfo.remaining.inDays > 365) {

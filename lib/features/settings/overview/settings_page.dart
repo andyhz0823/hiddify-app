@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
+import 'package:hiddify/features/auth/notifier/auth_notifier.dart';
 import 'package:hiddify/features/settings/notifier/config_option/config_option_notifier.dart';
 import 'package:hiddify/features/settings/notifier/reset_tunnel/reset_tunnel_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -140,7 +141,7 @@ class SettingsPage extends HookConsumerWidget {
       ),
       body: ListView(
         children: [
-          // TipCard(message: t.settings.experimentalMsg),
+          _AccountSection(),
           SettingsSection(
             title: t.pages.settings.general.title,
             icon: Icons.layers_rounded,
@@ -213,6 +214,75 @@ class SettingsSection extends HookConsumerWidget {
       title: Text(title),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: () => context.go(namedLocation),
+    );
+  }
+}
+
+class _AccountSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final authState = ref.watch(authNotifierProvider);
+    final authNotifier = ref.watch(authNotifierProvider.notifier);
+
+    final panelUrl = authNotifier.panelUrl;
+    final email = authNotifier.email;
+
+    if (panelUrl == null || email == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            '账号',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.primary,
+            ),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.email_outlined, color: theme.colorScheme.primary),
+                  title: Text(email),
+                  subtitle: const Text('邮箱'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                Divider(height: 1, indent: 0, color: theme.colorScheme.outlineVariant),
+                ListTile(
+                  leading: Icon(Icons.dns_outlined, color: theme.colorScheme.primary),
+                  title: Text(panelUrl),
+                  subtitle: const Text('面板地址'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                Divider(height: 1, indent: 0, color: theme.colorScheme.outlineVariant),
+                ListTile(
+                  leading: Icon(Icons.logout_rounded, color: theme.colorScheme.error),
+                  title: Text('退出登录', style: TextStyle(color: theme.colorScheme.error)),
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () async {
+                    final confirm = await ref.read(dialogNotifierProvider.notifier).showConfirmation(
+                      title: '退出登录',
+                      message: '确定要退出登录吗？',
+                    );
+                    if (confirm == true) {
+                      await authNotifier.logout();
+                      if (context.mounted) context.goNamed('login');
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Gap(8),
+      ],
     );
   }
 }

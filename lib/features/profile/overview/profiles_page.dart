@@ -41,11 +41,6 @@ class ProfilesPage extends HookConsumerWidget {
           const Gap(8),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async => await ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(),
-        label: Text(t.pages.profiles.add),
-        icon: const Icon(Icons.add_rounded),
-      ),
       body: asyncProfiles.when(
         data: (data) => ListView.separated(
           padding: const EdgeInsets.all(12).copyWith(bottom: 84),
