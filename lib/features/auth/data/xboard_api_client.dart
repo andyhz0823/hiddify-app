@@ -48,8 +48,8 @@ class XboardApiClient with InfraLogger {
       throw XboardApiException('登录返回数据异常');
     }
 
-    final subscriptionToken = data['token'] as String?;
-    final authData = data['auth_data'] as String?;
+    final subscriptionToken = data['token']?.toString();
+    final authData = data['auth_data']?.toString();
 
     if (subscriptionToken == null || authData == null) {
       throw XboardApiException('登录返回数据不完整');
@@ -85,11 +85,11 @@ class XboardApiClient with InfraLogger {
     }
 
     return XboardSubscribeResult(
-      subscribeUrl: data['subscribe_url'] as String? ?? '',
+      subscribeUrl: data['subscribe_url']?.toString() ?? '',
       planId: data['plan_id'] as int?,
-      expiredAt: data['expired_at'] as String?,
-      email: data['email'] as String?,
-      token: data['token'] as String?,
+      expiredAt: data['expired_at']?.toString(),
+      email: data['email']?.toString(),
+      token: data['token']?.toString(),
     );
   }
 }
