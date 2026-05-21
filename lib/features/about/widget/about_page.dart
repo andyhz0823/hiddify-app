@@ -19,6 +19,14 @@ class AboutPage extends HookConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
+                'kuaifei v4.1.2',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
                 '警告:严禁观看、发表涉政不良内容，天网恢恢疏而不漏',
                 textAlign: TextAlign.justify,
                 style: theme.textTheme.bodyLarge?.copyWith(
@@ -52,7 +60,7 @@ class AboutPage extends HookConsumerWidget {
               ),
               const SizedBox(height: 16),
               SelectableText(
-                '联系方式：wahiva562@qmail.com 24小时内发回',
+                '联系方式：wahiya562@gmail.com 24小时内回复',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleMedium,
               ),

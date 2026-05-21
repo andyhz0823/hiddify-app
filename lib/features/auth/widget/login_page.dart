@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/features/auth/notifier/auth_notifier.dart';
 import 'package:hiddify/features/profile/data/profile_data_providers.dart';
-import 'package:hiddify/features/profile/model/profile_entity.dart';
+import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -12,7 +12,7 @@ class LoginPage extends ConsumerStatefulWidget {
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> with AppLogger {
   final _formKey = GlobalKey<FormState>();
   final _panelUrlController = TextEditingController();
   final _emailController = TextEditingController();
@@ -44,26 +44,40 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     try {
       final subscribeUrl = ref.read(authNotifierProvider.notifier).subscribeUrl;
+      loggy.debug('Auto-subscribe: subscribeUrl=$subscribeUrl');
+
       if (subscribeUrl == null || subscribeUrl.isEmpty) {
-        if (mounted) context.goNamed('home');
+        loggy.warning('Auto-subscribe: no subscribe URL available');
+        ref.read(inAppNotificationControllerProvider).showErrorToast(
+          '未获取到订阅地址，请稍后手动添加',
+        );
         return;
       }
 
       final repo = await ref.read(profileRepositoryProvider.future);
+
+      loggy.debug('Auto-subscribe: calling upsertRemote with URL');
       final result = await repo.upsertRemote(subscribeUrl).run();
 
       result.match(
         (failure) {
-          // Profile creation failed, but we're still authenticated.
-          // Navigate to home anyway; retry will happen when the user opens profiles.
-          if (mounted) context.goNamed('home');
+          loggy.warning('Auto-subscribe failed', failure);
+          ref.read(inAppNotificationControllerProvider).showErrorToast(
+            '订阅失败: ${failure.toString()}',
+          );
         },
         (_) {
-          if (mounted) context.goNamed('home');
+          loggy.info('Auto-subscribe succeeded');
+          ref.read(inAppNotificationControllerProvider).showSuccessToast(
+            '订阅成功',
+          );
         },
       );
-    } catch (_) {
-      if (mounted) context.goNamed('home');
+    } catch (e, st) {
+      loggy.error('Auto-subscribe exception', e, st);
+      ref.read(inAppNotificationControllerProvider).showErrorToast(
+        '订阅异常: ${e.toString()}',
+      );
     } finally {
       _isCreatingProfile = false;
     }
