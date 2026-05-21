@@ -37,6 +37,9 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> with AppLogger {
   String? _readSubscriptionToken() =>
       ref.read(sharedPreferencesProvider).requireValue.getString('auth_subscription_token');
 
+  String? _readSubscribeUrl() =>
+      ref.read(sharedPreferencesProvider).requireValue.getString('auth_subscribe_url');
+
   String? _readEmail() =>
       ref.read(sharedPreferencesProvider).requireValue.getString('auth_email');
 
@@ -74,7 +77,7 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> with AppLogger {
       loggy.debug('Auth: logging in to $normalizedUrl as $email');
       final loginResult = await client.login(email: email, password: password);
 
-      // Step 2: Get subscription info
+      // Step 2: Get subscription info (includes subscribe_url)
       client.setToken(loginResult.sanctumToken);
       final subscribeResult = await client.getSubscribe();
 
@@ -85,6 +88,10 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> with AppLogger {
         'auth_subscription_token',
         loginResult.subscriptionToken,
       );
+      // Save the full subscribe URL from API (more reliable than constructing manually)
+      if (subscribeResult.subscribeUrl.isNotEmpty) {
+        await _writePreference('auth_subscribe_url', subscribeResult.subscribeUrl);
+      }
       await _writePreference('auth_email', email);
 
       loggy.debug('Auth: login successful for $email');
@@ -94,6 +101,11 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> with AppLogger {
 
   /// Build the full subscribe URL from stored credentials
   String? get subscribeUrl {
+    // Priority 1: use the subscribe_url returned by the API
+    final savedUrl = _readSubscribeUrl();
+    if (savedUrl != null && savedUrl.isNotEmpty) return savedUrl;
+
+    // Priority 2: fall back to constructing from panel URL + token
     final panelUrl = _readPanelUrl();
     final token = _readSubscriptionToken();
     if (panelUrl == null || token == null) return null;
@@ -105,6 +117,7 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> with AppLogger {
     await _removePreference('auth_panel_url');
     await _removePreference('auth_sanctum_token');
     await _removePreference('auth_subscription_token');
+    await _removePreference('auth_subscribe_url');
     await _removePreference('auth_email');
     state = const AsyncData(AuthStatus.idle);
     loggy.debug('Auth: logged out, credentials cleared');
