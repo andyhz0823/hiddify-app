@@ -256,6 +256,11 @@ type ConnectionState struct {
 	// TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_AES_128_GCM_SHA256).
 	CipherSuite uint16
 
+	// CurveID is the key exchange mechanism used for the connection. The name
+	// refers to elliptic curves for legacy reasons, see CurveID. If a legacy
+	// RSA key exchange is used, this value is zero.
+	CurveID CurveID
+
 	// NegotiatedProtocol is the application protocol negotiated with ALPN.
 	NegotiatedProtocol string
 
@@ -314,9 +319,9 @@ type ConnectionState struct {
 	// testingOnlyDidHRR is true if a HelloRetryRequest was sent/received.
 	testingOnlyDidHRR bool
 
-	// testingOnlyCurveID is the selected CurveID, or zero if an RSA exchanges
-	// is performed.
-	testingOnlyCurveID CurveID
+	// testingOnlyPeerSignatureAlgorithm is the signature algorithm used by the
+	// peer to sign the handshake. It is not set for resumed connections.
+	testingOnlyPeerSignatureAlgorithm SignatureScheme
 }
 
 // ExportKeyingMaterial returns length bytes of exported key material in a new

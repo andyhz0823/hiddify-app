@@ -57,6 +57,7 @@ func Setup(params *SetupRequest, platformInterface libbox.PlatformInterface) err
 	static.debug = params.Debug
 	static.globalPlatformInterface = platformInterface
 	tcpConn := true // runtime.GOOS == "windows" // TODO add TVOS
+
 	libbox.Setup(
 		&libbox.SetupOptions{
 			BasePath:    params.BasePath,
@@ -87,11 +88,6 @@ func Setup(params *SetupRequest, platformInterface libbox.PlatformInterface) err
 			DefaultWriter: defaultWriter,
 			BaseTime:      time.Now(),
 			Observable:    true,
-			// Options: option.LogOptions{
-			// 	Disabled: false,
-			// 	Level:    "trace",
-			// 	Output:   "stdout",
-			// },
 		})
 	static.CoreLogFactory = factory
 
@@ -103,24 +99,22 @@ func Setup(params *SetupRequest, platformInterface libbox.PlatformInterface) err
 	switch params.Mode {
 	case SetupMode_OLD:
 		statusPropagationPort = int64(params.FlutterStatusPort)
-	// case SetupMode_GRPC_BACKGROUND_INSECURE:
 	default:
 		_, err := StartGrpcServerByMode(params.Listen, params.Mode)
 		if err != nil {
 			return err
 		}
 	}
+
 	settings := db.GetTable[hcommon.AppSettings]()
 	val, err := settings.Get("HiddifySettingsJson")
 	Log(LogLevel_DEBUG, LogType_CORE, "HiddifySettingsJson", val, err)
 	if val == nil || err != nil {
-		// if params.Mode == SetupMode_GRPC_BACKGROUND_INSECURE {
 		_, err := ChangeHiddifySettings(&ChangeHiddifySettingsRequest{HiddifySettingsJson: ""}, false)
 		if err != nil {
 			Log(LogLevel_ERROR, LogType_CORE, E.Cause(err, "ChangeHiddifySettings").Error())
 		}
 	} else {
-		// settings := db.GetTable[hcommon.AppSettings]()
 		_, err := ChangeHiddifySettings(&ChangeHiddifySettingsRequest{HiddifySettingsJson: val.Value.(string)}, false)
 		if err != nil {
 			Log(LogLevel_ERROR, LogType_CORE, E.Cause(err, "ChangeHiddifySettings").Error())
