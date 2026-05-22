@@ -32,7 +32,7 @@ abstract class ConfigOptions {
 
   static final region = PreferencesNotifier.create<Region, String>(
     "region",
-    Region.other,
+    Region.cn,
     mapFrom: Region.values.byName,
     mapTo: (value) => value.name,
   );
@@ -60,7 +60,7 @@ abstract class ConfigOptions {
     possibleValues: List.of([
       "local",
       // "udp://223.5.5.5",
-      // "udp://1.1.1.1",
+      // "223.5.5.5",
       // "udp://1.1.1.2",
       "tcp://8.8.8.8",
       "tcp://1.1.1.1",
@@ -80,7 +80,7 @@ abstract class ConfigOptions {
 
   static final directDnsAddress = PreferencesNotifier.create<String, String>(
     "direct-dns-address",
-    "udp://1.1.1.1",
+    "223.5.5.5",
     possibleValues: List.of([
       "local",
       "udp://223.5.5.5",
