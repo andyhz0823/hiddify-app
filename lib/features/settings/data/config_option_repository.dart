@@ -127,7 +127,7 @@ abstract class ConfigOptions {
 
   static final tunImplementation = PreferencesNotifier.create<TunImplementation, String>(
     "tun-implementation",
-    TunImplementation.gvisor,
+    TunImplementation.system,
     mapFrom: TunImplementation.values.byName,
     mapTo: (value) => value.name,
   );
