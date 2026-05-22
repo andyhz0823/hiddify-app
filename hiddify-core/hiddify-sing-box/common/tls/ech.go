@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/pem"
+	"log/slog"
 	"net"
 	"os"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
-	"github.com/sagernet/sing-box/dns"
 	"github.com/sagernet/sing-box/experimental/deprecated"
 	"github.com/sagernet/sing-box/option"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -43,7 +43,8 @@ func parseECHClientConfig(ctx context.Context, clientConfig ECHCapableConfig, op
 	if len(echConfig) > 0 {
 		block, rest := pem.Decode(echConfig)
 		if block == nil || block.Type != "ECH CONFIGS" || len(rest) > 0 {
-			return nil, E.New("invalid ECH configs pem")
+			slog.Warn("skip invalid ECH configs pem, continue without ECH")
+			return clientConfig, nil
 		}
 		clientConfig.SetECHConfigList(block.Bytes)
 		return clientConfig, nil
@@ -150,10 +151,12 @@ func (s *ECHClientConfig) fetchAndHandshake(ctx context.Context, conn net.Conn) 
 		}
 		response, err := s.dnsRouter.Exchange(ctx, message, adapter.DNSQueryOptions{})
 		if err != nil {
-			return nil, E.Cause(err, "fetch ECH config list")
+			slog.Warn("fetch ECH config list via DNS failed", "server", queryServerName, "error", err)
+			return s.Client(conn)
 		}
 		if response.Rcode != mDNS.RcodeSuccess {
-			return nil, E.Cause(dns.RcodeError(response.Rcode), "fetch ECH config list")
+			slog.Warn("fetch ECH config list: DNS response error", "server", queryServerName, "rcode", response.Rcode)
+			return s.Client(conn)
 		}
 	match:
 		for _, rr := range response.Answer {
@@ -163,7 +166,8 @@ func (s *ECHClientConfig) fetchAndHandshake(ctx context.Context, conn net.Conn) 
 					if value.Key().String() == "ech" {
 						echConfigList, err := base64.StdEncoding.DecodeString(value.String())
 						if err != nil {
-							return nil, E.Cause(err, "decode ECH config")
+							slog.Warn("decode ECH config from DNS failed", "server", queryServerName, "error", err)
+							return s.Client(conn)
 						}
 						s.lastTTL = time.Duration(rr.Header().Ttl) * time.Second
 						s.lastUpdate = time.Now()
@@ -174,7 +178,8 @@ func (s *ECHClientConfig) fetchAndHandshake(ctx context.Context, conn net.Conn) 
 			}
 		}
 		if len(s.ECHConfigList()) == 0 {
-			return nil, E.New("no ECH config found in DNS records")
+			slog.Warn("no ECH config found in DNS records", "server", queryServerName)
+			return s.Client(conn)
 		}
 	}
 	return s.Client(conn)

@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:hiddify/core/db/provider/db_providers.dart';
+import 'package:hiddify/core/directories/directories_provider.dart';
 import 'package:hiddify/core/preferences/preferences_provider.dart';
 import 'package:hiddify/features/auth/data/xboard_api_client.dart';
 import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 /// Auth state: idle | loading | authenticated | error
 enum AuthStatus { idle, loading, authenticated, error }
@@ -112,14 +117,30 @@ class AuthNotifier extends AsyncNotifier<AuthStatus> with AppLogger {
     return '$panelUrl/s/$token';
   }
 
-  /// Logout: clear all credentials
+  /// Logout: clear all credentials and configs
   Future<void> logout() async {
     await _removePreference('auth_panel_url');
     await _removePreference('auth_sanctum_token');
     await _removePreference('auth_subscription_token');
     await _removePreference('auth_subscribe_url');
     await _removePreference('auth_email');
+
+    // Delete all config files and database entries
+    try {
+      final dirs = ref.read(appDirectoriesProvider).requireValue;
+      final configsDir = Directory(p.join(dirs.workingDir.path, 'configs'));
+      if (await configsDir.exists()) {
+        await configsDir.delete(recursive: true);
+      }
+
+      final db = ref.read(dbProvider);
+      await db.delete(db.profileEntries).go();
+      await db.delete(db.appProxyEntries).go();
+    } catch (e, st) {
+      loggy.warning('Failed to clean up profile data on logout', e, st);
+    }
+
     state = const AsyncData(AuthStatus.idle);
-    loggy.debug('Auth: logged out, credentials cleared');
+    loggy.debug('Auth: logged out, credentials and configs cleared');
   }
 }
